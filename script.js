@@ -82,29 +82,22 @@ function adminLogout(){
   adminKey='';localStorage.removeItem('chem_admin_key')
 }
 
-var adminStatsList=[];
-
-function renderAdminStatsIdx(idx,container,mode){
-  if(mode)container._statMode=mode;
-  renderAdminStats(adminStatsList[idx],container)
-}
-
-function renderAdminStats(stats,container){
+function renderAdminStats(stats,container,mode){
   var s=stats||{};
   if(s.judge){s.exam={judge:s.judge,single:s.single,multi:s.multi};delete s.judge;delete s.single;delete s.multi}
   var modes=[{key:'random',label:'刷题模式'},{key:'seq',label:'顺序模式'},{key:'exam',label:'考试模式'}];
   var types=[{key:'judge',label:'判断题'},{key:'single',label:'单选题'},{key:'multi',label:'多选题'}];
-  var cur=container._statMode||Object.keys(s).find(function(k){return modes.some(function(m){return m.key===k})})||'random';
+  var cur=mode||container._statMode||Object.keys(s).find(function(k){return modes.some(function(m){return m.key===k})})||'random';
+  container._statMode=cur;
   if(!s[cur])cur='random';
   var data=s[cur]||{};
   var total=0,correct=0;
   types.forEach(function(t){var d=data[t.key]||{total:0,correct:0};total+=d.total;correct+=d.correct});
   var opct=total?(correct/total*100).toFixed(1):'-';
-  var idx=container._statIdx;
   var h='<div class="stat-tabs" style="border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:8px">';
   modes.forEach(function(m){
     var cnt=0;types.forEach(function(t){var d=(s[m.key]||{})[t.key]||{total:0,correct:0};cnt+=d.total});
-    h+='<div class="stat-tab'+(cur===m.key?' active':'')+'" style="cursor:pointer;padding:4px 10px;font-size:13px;border-radius:4px;display:inline-block;'+(cur===m.key?'background:var(--primary);color:#fff':'color:var(--text)')+'" onclick="renderAdminStatsIdx('+idx+',this.parentElement.parentElement,\''+m.key+'\')">'+m.label+(cnt?' <span style="opacity:.7">('+cnt+')</span>':'')+'</div>'
+    h+='<div class="stat-tab'+(cur===m.key?' active':'')+'" style="cursor:pointer;padding:4px 10px;font-size:13px;border-radius:4px;display:inline-block;'+(cur===m.key?'background:var(--primary);color:#fff':'color:var(--text)')+'" onclick="renderAdminStats('+JSON.stringify(stats).replace(/"/g,'&quot;')+',this.parentElement.parentElement,this.getAttribute(\'data-mode\'))" data-mode="'+m.key+'">'+m.label+(cnt?' <span style="opacity:.7">('+cnt+')</span>':'')+'</div>'
   });
   h+='</div>';
   if(!total){container.innerHTML=h+'<div style="font-size:13px;color:var(--text2);text-align:center;padding:8px 0">暂无数据</div>';return}
@@ -149,16 +142,13 @@ function showAdmin(){
       var html='';
       j.users.forEach(function(u,ui){
         var saves=u.saves||0,flagged=u.flagged||0;
-        var statsIdx=adminStatsList.length;
-        adminStatsList.push(u.stats);
         var statStr=document.createElement('div');
-        statStr._statIdx=statsIdx;
         renderAdminStats(u.stats,statStr);
         html+='<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;background:var(--card)">';
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;user-select:none" onclick="var n=this.nextElementSibling;n.style.display=n.style.display===\'none\'?\'\':\'none\';this.querySelector(\'.admin-arrow\').textContent=n.style.display===\'none\'?\'\u25BC\':\'\u25B2\'">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;user-select:none" onclick="var n=this.nextElementSibling;if(n.style.display===\'none\'){n.style.display=\'\'}else{n.style.display=\'none\'};this.querySelector(\'.admin-arrow\').textContent=n.style.display===\'none\'?\'\u25BC\':\'\u25B2\'">';
         html+='<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><strong style="font-size:14px">'+escHtml(u.passphrase)+'</strong><span style="font-size:12px;color:var(--text2)">进度 '+saves+'</span>'+(flagged?'<span style="font-size:12px;color:var(--wrong)">标记 '+flagged+'</span>':'')+'</div>';
-        html+='<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-sm btn-del" style="font-size:11px;padding:3px 10px;min-height:auto" onclick="event.stopPropagation();adminDeleteUser(\''+u.id+'\')">删除</button><span class="admin-arrow" style="font-size:12px;color:var(--text2);margin-left:4px">&#9650;</span></div></div>';
-        html+='<div style="padding:12px 14px;border-top:1px solid var(--border);background:var(--bg)" id="adminStats_'+ui+'">'+statStr.innerHTML+'</div></div>'
+        html+='<div style="display:flex;gap:6px;align-items:center"><button class="btn btn-sm btn-del" style="font-size:11px;padding:3px 10px;min-height:auto" onclick="event.stopPropagation();adminDeleteUser(\''+u.id+'\')">删除</button><span class="admin-arrow" style="font-size:12px;color:var(--text2);margin-left:4px">&#9660;</span></div></div>';
+        html+='<div style="display:none;padding:12px 14px;border-top:1px solid var(--border);background:var(--bg)" id="adminStats_'+ui+'">'+statStr.innerHTML+'</div></div>'
       });
       listEl.innerHTML=html;
     }catch(e){listEl.innerHTML='<div style="color:var(--wrong);padding:12px">请求失败：'+e.message+'</div>'}
