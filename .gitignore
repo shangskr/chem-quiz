@@ -1,0 +1,6 @@
+node_modules
+questions.json
+化工总控工题库.docx
+parse_questions.py
+verify_answers.py
+.env

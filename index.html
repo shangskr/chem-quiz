@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>化工总控工题库</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container" id="app">
+
+  <div class="theme-row">
+    <button class="theme-btn" onclick="showAdmin()">管理</button>
+    <button class="theme-btn" onclick="clearCache()">清除缓存</button>
+    <button class="theme-btn" onclick="showHelp()">帮助</button>
+    <div style="flex:1"></div>
+    <button class="theme-btn" id="wrongBookBtn" onclick="startFlaggedReview()">错题本</button>
+    <button class="theme-btn" id="clearFlagBtn" onclick="clearFlags()" style="display:none">清除标记</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()"></button>
+  </div>
+
+  <div id="pageHome">
+    <div class="banner">
+      <h1>化工总控工（高级）答题系统</h1>
+      <p>题库共 <span id="totalQ">0</span> 题 · 模拟机考 · 进度自动保存</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">答题</div>
+      <div class="key-row">
+        <input type="text" id="passphrase" placeholder="输入同步口令（如 abc123）" oninput="onPassphraseChange()">
+        <button class="btn btn-primary btn-sm" onclick="loadProgress()">加载</button>
+        <button class="btn btn-warning btn-sm" onclick="resetPassphrase()" style="display:none" id="resetBtn">重置</button>
+      </div>
+      <div class="key-msg" id="keyMsg" style="margin-bottom:14px">口令用于同步不同设备的答题进度</div>
+
+      <div class="mode-tabs" id="modeTabs">
+        <div class="mode-tab active" data-mode="random" onclick="setMode('random')">刷题模式</div>
+        <div class="mode-tab" data-mode="seq" onclick="setMode('seq')">顺序模式</div>
+        <div class="mode-tab" data-mode="exam" onclick="setMode('exam')">考试模式</div>
+      </div>
+
+      <div id="settingsRandom">
+        <div class="row"><label>题目数</label><input type="number" id="rCount" value="100" min="1" max="1841"><span style="font-size:12px;color:var(--text2)">随机抽题·即时反馈</span></div>
+        <div class="row"><label>题型</label>
+          <div class="cg">
+            <label><input type="checkbox" id="rJudge" checked> 判断</label>
+            <label><input type="checkbox" id="rSingle" checked> 单选</label>
+            <label><input type="checkbox" id="rMulti" checked> 多选</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="settingsSeq" style="display:none">
+        <div class="row"><label>起始题号</label><input type="number" id="sStart" value="1" min="1" max="1841"><span style="font-size:12px;color:var(--text2)">从该题连续往后·即时反馈</span></div>
+        <div class="row"><label>连续题数</label><input type="number" id="sCount" value="100" min="1" max="1841"></div>
+        <div class="row"><label>题型</label>
+          <div class="cg">
+            <label><input type="checkbox" id="sJudge" checked> 判断</label>
+            <label><input type="checkbox" id="sSingle" checked> 单选</label>
+            <label><input type="checkbox" id="sMulti" checked> 多选</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="settingsExam" style="display:none">
+        <div class="row"><label>题目数</label><input type="number" id="eCount" value="100" min="1" max="1841"><span style="font-size:12px;color:var(--text2)">全部答完才显示成绩</span></div>
+        <div class="row"><label>考试时间</label><input type="number" id="eTime" value="60" min="5" max="300"><span style="font-size:12px;color:var(--text2)">分钟，倒计时结束自动交卷</span></div>
+        <div class="row"><label>题型</label>
+          <div class="cg">
+            <label><input type="checkbox" id="eJudge" checked> 判断</label>
+            <label><input type="checkbox" id="eSingle" checked> 单选</label>
+            <label><input type="checkbox" id="eMulti" checked> 多选</label>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">考试模式：可自由切换题目修改答案，交卷后统一评分 · 可标记题目回头检查</div>
+      </div>
+
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn btn-primary" onclick="startQuiz()" style="padding:12px 48px;font-size:16px">开始答题</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px" id="savedPanel">
+      <div class="panel-title">&#128194; 已保存的进度</div>
+      <div id="savedList"></div>
+    </div>
+    <div class="panel" style="margin-top:14px" id="statsPanel">
+      <div class="panel-title">&#128200; 学习统计</div>
+      <div id="statsContent" style="margin-bottom:8px"><div class="empty-saved">暂无统计数据，完成考试模式后自动生成</div></div>
+    </div>
+  </div>
+
+  <div class="quiz-area" id="pageQuiz">
+    <div class="top-bar">
+      <div class="top-left">
+        <button class="btn btn-sm btn-outline" onclick="quitQuiz()">&#8592; 保存退出</button>
+        <span class="progress-text" id="progText"></span>
+        <span class="progress-text" id="saveHint" style="font-size:11px;color:var(--text2)"></span>
+        <span class="timer" id="timerDisplay" style="display:none"></span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span style="display:flex;gap:2px;align-items:center">
+          <button class="fs-btn" data-size="small" onclick="setFontSize('small')">小</button>
+          <button class="fs-btn active" data-size="medium" onclick="setFontSize('medium')">中</button>
+          <button class="fs-btn" data-size="large" onclick="setFontSize('large')">大</button>
+        </span>
+        <button class="flag-btn" id="flagBtn" onclick="toggleFlag()">⚐ 标记</button>
+        <button class="btn btn-sm btn-warning" id="submitBtn" onclick="submitEarly()">交卷</button>
+      </div>
+    </div>
+    <div class="bar-wrap"><div class="bar-fill" id="progFill"></div></div>
+    <button class="nav-toggle" id="navToggle" onclick="toggleNav()">⊞ 题号导航 <span id="navArrow">▾</span></button>
+    <div class="nav-grid" id="navigator"></div>
+
+    <div class="q-card" id="qCard"></div>
+
+    <div class="nav-row">
+      <button class="btn btn-sm btn-outline" id="prevBtn" onclick="goPrev()">上一题</button>
+      <button class="btn btn-sm btn-primary" id="nextBtn" onclick="goNext()">下一题</button>
+      <button class="btn btn-sm btn-outline" id="backToResultBtn" onclick="backToResult()" style="display:none">返回结果</button>
+    </div>
+  </div>
+
+  <div class="res-area" id="pageResult">
+    <div class="banner"><h1>答题结果</h1></div>
+    <div class="score" id="resScore">0</div>
+    <div class="score-lbl">分</div>
+    <div class="det" id="resDet"></div>
+    <div style="text-align:center;margin:10px 0" id="wrongReviewWrap"><button class="btn btn-outline" onclick="startWrongReview()">错题作答</button></div>
+    <div class="stat-grid" id="resStats"></div>
+    <div class="res-tbl" id="resTbl"></div>
+    <div class="res-acts">
+      <button class="btn btn-outline" onclick="toggleAllResQ(this)">展开全部题目</button>
+      <button class="btn btn-outline" onclick="reviewWrong()">浏览全部</button>
+      <button class="btn btn-primary" onclick="goHome()">返回首页</button>
+    </div>
+  </div>
+</div>
+
+<script src="questions.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
