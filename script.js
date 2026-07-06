@@ -194,7 +194,7 @@ async function apiSave(){
 async function apiDelete(keyId){
   if(!passphrase||!savedData)return;
   savedData.saves=savedData.saves.filter(function(e){return e.id!==keyId});
-  updateStats();saveLocal(true);await apiSave();renderSavedList();renderStats()
+  updateStats();localStorage.setItem(LOCAL_KEY,JSON.stringify(savedData));await apiSave();renderSavedList();renderStats()
 }
 
 function toggleNav(){
@@ -698,7 +698,7 @@ function goHome(){showPage('home');quiz=[];renderStats()}
 
 async function quitQuiz(){
   if(mode!=='exam'&&!(await showConfirm('确定退出？进度已自动保存')))return;
-  stopTimer();updateStats();syncCloud();showPage('home');renderStats()
+  stopTimer();updateStats();syncCloud();goHome()
 }
 
 document.addEventListener('keydown',function(e){
