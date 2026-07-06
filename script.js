@@ -353,7 +353,7 @@ function switchStatMode(m){window._statMode=m;renderStats()}
 async function clearCloudStats(){
   if(!(await showConfirm('确定清除全部学习统计吗？\n将同时清除本地和云端的统计数据，此操作不可撤销。')))return;
   savedData.stats={random:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}},seq:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}},exam:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}}};
-  saveLocal(true);await apiSave();renderStats();showAlert('已清除全部统计')
+  localStorage.setItem(LOCAL_KEY,JSON.stringify(savedData));await apiSave();renderStats();showAlert('已清除全部统计')
 }
 
 function startFlaggedReview(){
