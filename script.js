@@ -194,7 +194,7 @@ async function apiSave(){
 async function apiDelete(keyId){
   if(!passphrase||!savedData)return;
   savedData.saves=savedData.saves.filter(function(e){return e.id!==keyId});
-  await apiSave();renderSavedList()
+  updateStats();saveLocal(true);await apiSave();renderSavedList();renderStats()
 }
 
 function toggleNav(){
@@ -281,18 +281,28 @@ function updateTimerDisplay(){
 }
 
 function updateStats(){
-  if(!savedData||!savedData.stats)savedData.stats={};
+  if(!savedData)return;
   if(window._noStats)return;
-  var m=mode==='random'?'random':mode==='seq'?'seq':mode==='exam'?'exam':'random';
-  if(!savedData.stats[m])savedData.stats[m]={judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}};
-  quiz.forEach(function(q,i){
-    var v=answers[i],has=Array.isArray(v)?v.length>0:v!=='';
-    if(!has)return;
-    var k=q.type==='判断题'?'judge':q.type==='单选题'?'single':'multi';
-    savedData.stats[m][k].total++;
-    if(checkAns(i))savedData.stats[m][k].correct++
-  });
-  saveLocal(true)
+  var qm={};questions.forEach(function(q){qm[q.id]=q});
+  savedData.stats={random:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}},seq:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}},exam:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}}};
+  (savedData.saves||[]).forEach(function(save){
+    var m=save.mode||'random';
+    if(m!=='random'&&m!=='seq'&&m!=='exam')return;
+    if(!save.answers||!save.qids)return;
+    save.answers.forEach(function(v,i){
+      var has=Array.isArray(v)?v.length>0:v!=='';
+      if(!has)return;
+      var qq=qm[save.qids[i]];if(!qq)return;
+      var k=qq.type==='判断题'?'judge':qq.type==='单选题'?'single':'multi';
+      savedData.stats[m][k].total++;
+      var isC;
+      if(qq.type==='多选题'){
+        var u=[...(v||[])].sort().join(';'),c=qq.answer.split(';').map(function(s){return s.trim()}).sort().join(';');
+        isC=u===c
+      }else isC=String(v).trim().toUpperCase()===String(qq.answer).trim().toUpperCase();
+      if(isC)savedData.stats[m][k].correct++
+    })
+  })
 }
 
 function renderStats(){
@@ -617,13 +627,14 @@ async function clearSaved(id){
     if(id){
       if(passphrase){await apiDelete(id);return}
       savedData.saves=savedData.saves.filter(function(e){return e.id!==id});
-      localStorage.setItem(LOCAL_KEY,JSON.stringify(savedData));renderSavedList();return
+      updateStats();localStorage.setItem(LOCAL_KEY,JSON.stringify(savedData));renderSavedList();renderStats();return
     }
     if(!savedData)return;
     savedData.saves=savedData.saves.filter(function(e){return e.id!==saveId});
+    updateStats();
     if(passphrase){await apiSave()}
     else{localStorage.setItem(LOCAL_KEY,JSON.stringify(savedData))}
-    renderSavedList()
+    renderSavedList();renderStats()
   }catch(e){}
 }
 
@@ -683,7 +694,7 @@ function showPage(n){
   document.getElementById('pageResult').style.display=n==='result'?'block':'none'
 }
 
-function goHome(){showPage('home');renderStats()}
+function goHome(){showPage('home');quiz=[];renderStats()}
 
 async function quitQuiz(){
   if(mode!=='exam'&&!(await showConfirm('确定退出？进度已自动保存')))return;
