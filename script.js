@@ -341,9 +341,9 @@ function renderStats(){
 function switchStatMode(m){window._statMode=m;renderStats()}
 
 async function clearCloudStats(){
-  if(!(await showConfirm('确定清除云端的全部学习统计吗？\n本地统计不受影响。')))return;
+  if(!(await showConfirm('确定清除全部学习统计吗？\n将同时清除本地和云端的统计数据，此操作不可撤销。')))return;
   savedData.stats={random:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}},seq:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}},exam:{judge:{total:0,correct:0},single:{total:0,correct:0},multi:{total:0,correct:0}}};
-  await apiSave();renderStats();showAlert('已清除云端统计')
+  saveLocal(true);await apiSave();renderStats();showAlert('已清除全部统计')
 }
 
 function startFlaggedReview(){
@@ -687,7 +687,7 @@ function goHome(){showPage('home');renderStats()}
 
 async function quitQuiz(){
   if(mode!=='exam'&&!(await showConfirm('确定退出？进度已自动保存')))return;
-  stopTimer();syncCloud();showPage('home');renderStats()
+  stopTimer();updateStats();syncCloud();showPage('home');renderStats()
 }
 
 document.addEventListener('keydown',function(e){
@@ -697,4 +697,4 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Enter'&&!finished&&mode!=='exam'){var q=quiz[currentIdx];if(q&&q.type!=='多选题')confirmSingle();e.preventDefault()
   }
 })
-window.addEventListener('beforeunload',function(){if(quiz.length)saveLocal(true)})
+window.addEventListener('beforeunload',function(){if(quiz.length){updateStats();saveLocal(true)}})
